@@ -1,0 +1,40 @@
+# Python environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / build
+build/
+dist/
+*.egg-info/
+
+# Django / local runtime files
+db.sqlite3
+db.sqlite3-journal
+*.log
+
+# Environment files
+.env
+.env.*
+
+# Test and tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage/
+
+# Uploaded/generated media
+media/uploads/
+media/stems/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
