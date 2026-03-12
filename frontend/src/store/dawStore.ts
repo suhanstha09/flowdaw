@@ -40,17 +40,12 @@ const COLORS = ['#ff6b00','#40c4ff','#00e676','#ce93d8','#ffea00','#ff5252','#69
 let tc = 5, cc = 100, nc = 100
 
 const DEFAULT_TRACKS: Track[] = [
-  { id:'t1', name:'Kick',  type:'DRUMS', color:'#ff6b00', clips:[{id:'c1',start:0,length:2,color:'#ff6b00'},{id:'c2',start:4,length:2,color:'#ff6b00'},{id:'c3',start:8,length:2,color:'#ff6b00'}], muted:false, soloed:false, volume:0.8, pan:0 },
-  { id:'t2', name:'Bass',  type:'BASS',  color:'#40c4ff', clips:[{id:'c4',start:0,length:4,color:'#40c4ff'},{id:'c5',start:8,length:4,color:'#40c4ff'}], muted:false, soloed:false, volume:0.7, pan:-0.1 },
-  { id:'t3', name:'Lead',  type:'SYNTH', color:'#00e676', clips:[{id:'c6',start:4,length:4,color:'#00e676'},{id:'c7',start:12,length:2,color:'#00e676'}], muted:false, soloed:false, volume:0.75, pan:0.2 },
-  { id:'t4', name:'Pad',   type:'SYNTH', color:'#ce93d8', clips:[{id:'c8',start:0,length:8,color:'#ce93d8'}], muted:false, soloed:false, volume:0.6, pan:0 },
+  { id:'t1', name:'Kick',  type:'DRUMS', color:'#ff6b00', clips:[], muted:false, soloed:false, volume:0.8, pan:0 },
+  { id:'t2', name:'Bass',  type:'BASS',  color:'#40c4ff', clips:[], muted:false, soloed:false, volume:0.7, pan:-0.1 },
+  { id:'t3', name:'Lead',  type:'SYNTH', color:'#00e676', clips:[], muted:false, soloed:false, volume:0.75, pan:0.2 },
+  { id:'t4', name:'Pad',   type:'SYNTH', color:'#ce93d8', clips:[], muted:false, soloed:false, volume:0.6, pan:0 },
 ]
-const DEFAULT_NOTES: PianoNote[] = [
-  {id:'n1',note:60,start:0,duration:1,velocity:100},{id:'n2',note:62,start:1,duration:0.5,velocity:90},
-  {id:'n3',note:64,start:2,duration:1,velocity:95},{id:'n4',note:65,start:3,duration:0.5,velocity:85},
-  {id:'n5',note:67,start:4,duration:2,velocity:100},{id:'n6',note:64,start:6,duration:1,velocity:88},
-  {id:'n7',note:62,start:7,duration:1,velocity:92},{id:'n8',note:60,start:8,duration:2,velocity:100},
-]
+const DEFAULT_NOTES: PianoNote[] = []
 const DEFAULT_CHANNELS: MixerChannel[] = [
   {id:'master',name:'Master',volume:0.8,pan:0,muted:false,soloed:false,fx:['Limiter','EQ'],color:'#ff6b00'},
   {id:'ch1',name:'Kick', volume:0.8, pan:0,   muted:false,soloed:false,fx:['Compressor'],color:'#ff6b00'},
