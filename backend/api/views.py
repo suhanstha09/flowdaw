@@ -93,6 +93,7 @@ class StemSplitView(APIView):
             'stems': {},
             'error': None,
             'filename': file.name,
+            'status_detail': 'Queued for processing',
         }
 
         thread = threading.Thread(target=run_stem_split, args=(job_id, upload_path))
@@ -114,6 +115,7 @@ class StemStatusView(APIView):
             'progress': job['progress'],
             'error': job['error'],
             'filename': job.get('filename', ''),
+            'status_detail': job.get('status_detail', ''),
             'stems': {},
         }
 
@@ -145,6 +147,7 @@ def run_stem_split(job_id, input_path):
     try:
         job['status'] = 'processing'
         job['progress'] = 5
+        job['status_detail'] = 'Preparing audio file'
 
         output_dir = get_media_path('stems', job_id)
         os.makedirs(output_dir, exist_ok=True)
@@ -153,6 +156,7 @@ def run_stem_split(job_id, input_path):
             import torch
             import demucs.separate
             job['progress'] = 10
+            job['status_detail'] = 'Initializing Demucs model'
 
             # Run demucs
             model = 'htdemucs'
@@ -165,8 +169,10 @@ def run_stem_split(job_id, input_path):
             ]
 
             job['progress'] = 15
+            job['status_detail'] = 'Running Demucs separation (first run may download model ~1GB)'
             demucs.separate.main(args)
             job['progress'] = 85
+            job['status_detail'] = 'Collecting generated stems'
 
             # Find output files
             stem_dir = None
@@ -186,15 +192,18 @@ def run_stem_split(job_id, input_path):
             job['stems'] = stems
             job['progress'] = 100
             job['status'] = 'done'
+            job['status_detail'] = 'Done'
 
         except (ImportError, Exception) as e:
             # Fallback: simulate splitting with numpy if demucs unavailable
             job['progress'] = 20
+            job['status_detail'] = 'Demucs unavailable, using fallback splitter'
             _fallback_split(job_id, input_path, output_dir, job)
 
     except Exception as e:
         job['status'] = 'error'
         job['error'] = str(e)
+        job['status_detail'] = 'Processing failed'
 
 
 def _fallback_split(job_id, input_path, output_dir, job):
@@ -218,6 +227,7 @@ def _fallback_split(job_id, input_path, output_dir, job):
         total = len(stem_configs)
         for i, (name, cfg) in enumerate(stem_configs.items()):
             job['progress'] = 20 + int((i / total) * 70)
+            job['status_detail'] = f'Generating {name} stem'
 
             # Simple band-pass using FFT
             fft = np.fft.rfft(data)
@@ -234,7 +244,9 @@ def _fallback_split(job_id, input_path, output_dir, job):
         job['stems'] = stems
         job['progress'] = 100
         job['status'] = 'done'
+        job['status_detail'] = 'Done (fallback splitter)'
 
     except Exception as e:
         job['status'] = 'error'
         job['error'] = f'Fallback split failed: {str(e)}'
+        job['status_detail'] = 'Fallback splitter failed'
