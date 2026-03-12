@@ -101,9 +101,12 @@ export function StemSplitter() {
               style={{ width: `${progress}%` }} />
           </div>
           <div className="text-[11px] text-text-faint text-center animate-pulse-glow">
-            {uploading ? 'Uploading audio...' :
-              job?.status === 'queued' ? 'Queued — waiting for GPU...' :
-              'Running Demucs AI model (htdemucs)...'}
+            {uploading
+              ? 'Uploading audio...'
+              : job?.status_detail ||
+                (job?.status === 'queued'
+                  ? 'Queued — waiting for worker...'
+                  : 'Running Demucs AI model (htdemucs)...')}
           </div>
         </div>
       )}
