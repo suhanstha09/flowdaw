@@ -8,6 +8,7 @@ export interface StemJob {
   progress: number
   error: string | null
   filename: string
+  status_detail?: string
   stems: Record<string, string>
 }
 
