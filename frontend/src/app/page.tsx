@@ -57,11 +57,11 @@ export default function Home() {
 
       {/* Panel */}
       <div className="flex flex-col flex-1 overflow-hidden">
-        {activeTab === 'sequencer' && <Sequencer />}
-        {activeTab === 'piano'     && <PianoRoll />}
-        {activeTab === 'mixer'     && <Mixer />}
-        {activeTab === 'stem'      && <StemSplitter />}
-        {activeTab === 'editor'    && <AudioEditor />}
+        <div className={`flex flex-col flex-1 overflow-hidden ${activeTab === 'sequencer' ? '' : 'hidden'}`}><Sequencer /></div>
+        <div className={`flex flex-col flex-1 overflow-hidden ${activeTab === 'piano'     ? '' : 'hidden'}`}><PianoRoll /></div>
+        <div className={`flex flex-col flex-1 overflow-hidden ${activeTab === 'mixer'     ? '' : 'hidden'}`}><Mixer /></div>
+        <div className={`flex flex-col flex-1 overflow-hidden ${activeTab === 'stem'      ? '' : 'hidden'}`}><StemSplitter /></div>
+        <div className={`flex flex-col flex-1 overflow-hidden ${activeTab === 'editor'    ? '' : 'hidden'}`}><AudioEditor /></div>
       </div>
     </div>
   )
