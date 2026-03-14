@@ -47,7 +47,7 @@ export function StemSplitter() {
     if (file) handleFile(file)
   }
 
-  const progress = uploading ? uploadPct * 0.3 : job ? (job.progress * 0.7 + 30) : 0
+  const progress = uploading ? uploadPct : (job?.progress ?? 0)
 
   return (
     <div className="flex flex-col flex-1 items-center overflow-y-auto p-8 gap-6">
