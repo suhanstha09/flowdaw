@@ -2,6 +2,9 @@ import os
 import uuid
 import json
 import threading
+import time
+import sys
+import subprocess
 import numpy as np
 from pathlib import Path
 from django.conf import settings
@@ -154,23 +157,15 @@ def run_stem_split(job_id, input_path):
 
         try:
             import torch
-            import demucs.separate
+            import demucs  # noqa: F401
             job['progress'] = 10
             job['status_detail'] = 'Initializing Demucs model'
 
-            # Run demucs
+            # Run demucs in a subprocess so we can heartbeat progress and enforce a timeout.
             model = 'htdemucs'
-            args = [
-                '--two-stems', 'no',
-                '-n', model,
-                '-o', output_dir,
-                '--mp3',
-                input_path
-            ]
-
             job['progress'] = 15
             job['status_detail'] = 'Running Demucs separation (first run may download model ~1GB)'
-            demucs.separate.main(args)
+            _run_demucs(job, input_path, output_dir, model)
             job['progress'] = 85
             job['status_detail'] = 'Collecting generated stems'
 
@@ -250,3 +245,58 @@ def _fallback_split(job_id, input_path, output_dir, job):
         job['status'] = 'error'
         job['error'] = f'Fallback split failed: {str(e)}'
         job['status_detail'] = 'Fallback splitter failed'
+
+
+def _run_demucs(job, input_path, output_dir, model):
+    """Run Demucs with heartbeat progress updates and timeout protection."""
+    max_seconds = int(getattr(settings, 'DEMUCS_TIMEOUT_SECONDS', 20 * 60))
+    command = [
+        sys.executable,
+        '-m',
+        'demucs.separate',
+        '--two-stems',
+        'no',
+        '-n',
+        model,
+        '-o',
+        output_dir,
+        '--mp3',
+        input_path,
+    ]
+
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    start = time.monotonic()
+    while True:
+        code = process.poll()
+        if code is not None:
+            if code != 0:
+                raise RuntimeError(f'Demucs exited with code {code}')
+            return
+
+        elapsed = int(time.monotonic() - start)
+        if elapsed > max_seconds:
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+            raise TimeoutError(
+                f'Demucs timed out after {max_seconds // 60} minutes. Falling back to basic splitter.'
+            )
+
+        # Keep progress moving during long model download/inference stage.
+        heartbeat = min(80, 15 + int((elapsed / max_seconds) * 65))
+        if heartbeat > job['progress']:
+            job['progress'] = heartbeat
+        if elapsed % 15 == 0:
+            job['status_detail'] = (
+                f'Running Demucs separation... {elapsed}s elapsed '
+                f'(first run may download model ~1GB)'
+            )
+
+        time.sleep(1.0)
