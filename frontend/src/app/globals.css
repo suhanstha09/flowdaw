@@ -15,8 +15,9 @@ body {
     radial-gradient(circle at top, rgba(69, 79, 94, 0.35) 0%, rgba(18, 22, 28, 0) 28%),
     linear-gradient(180deg, #10141b 0%, #0a0d12 45%, #06080b 100%);
   color: #e0e0e8;
-  overflow: hidden;
-  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 100vh;
   letter-spacing: 0.01em;
 }
 
