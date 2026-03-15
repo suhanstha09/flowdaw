@@ -50,7 +50,7 @@ export default function Home() {
   const beats = Math.floor(playPosition % 4) + 1
 
   return (
-    <div className="fl-shell flex h-screen flex-col overflow-hidden bg-[#0a0d10] text-text">
+    <div className="fl-shell flex min-h-screen flex-col overflow-x-hidden bg-[#0a0d10] text-text">
       <div className="flex h-9 items-center gap-4 border-b border-white/10 bg-[linear-gradient(180deg,#49515f_0%,#2d3139_22%,#16191f_100%)] px-3 text-[11px] uppercase tracking-[0.24em] text-[#d7dbe3] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
         <div className="flex items-center gap-3">
           <div className="flex h-5 w-5 items-center justify-center rounded-sm border border-black/50 bg-[linear-gradient(180deg,#ffb34d,#ff7a00)] font-display text-[10px] font-bold text-black shadow-[0_0_16px_rgba(255,122,0,0.35)]">
