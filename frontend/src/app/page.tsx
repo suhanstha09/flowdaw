@@ -50,8 +50,9 @@ export default function Home() {
   const beats = Math.floor(playPosition % 4) + 1
 
   return (
-    <div className="fl-shell flex min-h-screen flex-col overflow-x-hidden bg-[#0a0d10] text-text">
-      <div className="flex h-9 items-center gap-4 border-b border-white/10 bg-[linear-gradient(180deg,#49515f_0%,#2d3139_22%,#16191f_100%)] px-3 text-[11px] uppercase tracking-[0.24em] text-[#d7dbe3] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+    <div className="fl-shell flex min-h-screen flex-col overflow-x-hidden bg-[radial-gradient(circle_at_top,#1b212b_0%,#0d1118_35%,#090c11_100%)] p-2 text-text lg:p-3">
+      <div className="fl-window flex min-h-[calc(100vh-1rem)] flex-col overflow-hidden rounded-md lg:min-h-[calc(100vh-1.5rem)]">
+      <div className="fl-header-strip flex h-9 items-center gap-3 border-x-0 border-t-0 px-3 text-[11px] uppercase tracking-[0.24em] text-[#d7dbe3]">
         <div className="flex items-center gap-3">
           <div className="flex h-5 w-5 items-center justify-center rounded-sm border border-black/50 bg-[linear-gradient(180deg,#ffb34d,#ff7a00)] font-display text-[10px] font-bold text-black shadow-[0_0_16px_rgba(255,122,0,0.35)]">
             F
@@ -77,8 +78,8 @@ export default function Home() {
 
       <TransportBar />
 
-      <div className="flex min-h-0 flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,#1d222b_0%,#0f1217_32%,#090c10_100%)]">
-        <aside className="flex w-[270px] flex-col border-r border-white/8 bg-[linear-gradient(180deg,#151920,#0d1014)] shadow-[inset_-1px_0_0_rgba(255,255,255,0.04)]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,#1d222b_0%,#0f1217_32%,#090c10_100%)] lg:flex-row">
+        <aside className="flex max-h-[38vh] w-full flex-col border-b border-white/8 bg-[linear-gradient(180deg,#151920,#0d1014)] shadow-[inset_-1px_0_0_rgba(255,255,255,0.04)] lg:max-h-none lg:w-[270px] lg:border-b-0 lg:border-r">
           <SectionFrame title="Channel Rack" subtitle="Pattern generator">
             <div className="space-y-2 px-3 pb-3 pt-2">
               {tracks.map((track, index) => (
@@ -118,7 +119,7 @@ export default function Home() {
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden px-3 pb-3 pt-2">
-          <div className="mb-2 grid grid-cols-[minmax(0,1fr)_260px] gap-3">
+          <div className="mb-2 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_260px]">
             <div className="fl-panel flex items-center justify-between gap-3 px-3 py-2">
               <div className="flex flex-wrap items-center gap-2">
                 {PLAYLIST_TOOLS.map((tool) => (
@@ -141,9 +142,9 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_300px] gap-3 overflow-hidden">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1fr)_300px]">
             <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
-              <section className="fl-panel fl-grid-bg flex min-h-0 flex-1 flex-col overflow-hidden">
+              <section className="fl-panel fl-grid-bg flex min-h-0 flex-1 flex-col overflow-hidden rounded-sm">
                 <div className="flex items-center justify-between border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(0,0,0,0.14))] px-4 py-2">
                   <div>
                     <div className="font-display text-[18px] uppercase tracking-[0.22em] text-white">Playlist</div>
@@ -162,7 +163,7 @@ export default function Home() {
                 </div>
               </section>
 
-              <section className="fl-panel flex h-[38%] min-h-[280px] flex-col overflow-hidden">
+              <section className="fl-panel flex h-[38%] min-h-[280px] flex-col overflow-hidden rounded-sm">
                 <div className="flex items-center justify-between border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.16))] px-3 py-2">
                   <div className="flex items-center gap-2">
                     {DOCK_TABS.map((tab) => (
@@ -195,7 +196,7 @@ export default function Home() {
             </div>
 
             <aside className="flex min-h-0 flex-col gap-3 overflow-hidden">
-              <section className="fl-panel overflow-hidden">
+              <section className="fl-panel overflow-hidden rounded-sm">
                 <div className="border-b border-white/8 px-4 py-3">
                   <div className="font-display text-[18px] uppercase tracking-[0.22em] text-white">Inspector</div>
                   <div className="text-[10px] uppercase tracking-[0.24em] text-text-dim">Playlist state and routing</div>
@@ -232,7 +233,7 @@ export default function Home() {
                 </div>
               </section>
 
-              <section className="fl-panel flex min-h-0 flex-1 flex-col overflow-hidden">
+              <section className="fl-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-sm">
                 <div className="border-b border-white/8 px-4 py-3">
                   <div className="font-display text-[18px] uppercase tracking-[0.22em] text-white">Quick Focus</div>
                   <div className="text-[10px] uppercase tracking-[0.24em] text-text-dim">Jump between lower dock tools</div>
@@ -270,6 +271,7 @@ export default function Home() {
           </div>
         </main>
       </div>
+      </div>
     </div>
   )
 }
@@ -277,7 +279,7 @@ export default function Home() {
 function SectionFrame({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden border-b border-white/6 last:border-b-0">
-      <div className="border-b border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(0,0,0,0.18))] px-3 py-2">
+      <div className="fl-header-strip border-x-0 border-t-0 border-b px-3 py-2">
         <div className="font-display text-[15px] uppercase tracking-[0.2em] text-white">{title}</div>
         <div className="text-[10px] uppercase tracking-[0.22em] text-text-dim">{subtitle}</div>
       </div>
@@ -304,7 +306,7 @@ function RackChannel({
   slot: number
 }) {
   return (
-    <div className="rounded-md border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(0,0,0,0.18))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="fl-slot rounded-sm p-2">
       <div className="mb-2 flex items-center gap-2">
         <div className="h-8 w-1 rounded-full" style={{ backgroundColor: color }} />
         <div className="min-w-0 flex-1">
@@ -332,7 +334,7 @@ function RackChannel({
 
 function StatusPill({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div className="rounded-sm border border-white/10 bg-black/20 px-2 py-1 leading-none shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+    <div className="fl-slot rounded-sm px-2 py-1 leading-none">
       <div className="text-[8px] uppercase tracking-[0.24em] text-text-dim">{label}</div>
       <div className={`mt-1 font-display text-[12px] uppercase tracking-[0.18em] ${accent}`}>{value}</div>
     </div>
@@ -341,7 +343,7 @@ function StatusPill({ label, value, accent }: { label: string; value: string; ac
 
 function MiniReadout({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-sm border border-white/8 bg-black/25 px-2 py-1.5 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+    <div className="fl-slot rounded-sm px-2 py-1.5 text-right">
       <div className="text-[8px] uppercase tracking-[0.22em] text-text-faint">{label}</div>
       <div className="font-mono text-[12px] text-[#eef3fa]">{value}</div>
     </div>
@@ -350,7 +352,7 @@ function MiniReadout({ label, value }: { label: string; value: string }) {
 
 function InspectorTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-white/8 bg-black/20 px-3 py-2">
+    <div className="fl-slot rounded-sm px-3 py-2">
       <div className="text-[9px] uppercase tracking-[0.22em] text-text-dim">{label}</div>
       <div className="mt-1 font-display text-[18px] uppercase tracking-[0.14em] text-white">{value}</div>
     </div>
