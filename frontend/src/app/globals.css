@@ -3,6 +3,18 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --fl-ink-0: #090b0f;
+  --fl-ink-1: #11141a;
+  --fl-ink-2: #1a1f28;
+  --fl-ink-3: #242b37;
+  --fl-line: rgba(255, 255, 255, 0.09);
+  --fl-line-strong: rgba(255, 255, 255, 0.16);
+  --fl-accent: #ff8c1f;
+  --fl-accent-hot: #ffb14f;
+  --fl-led-green: #00e676;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, #__next {
@@ -81,6 +93,41 @@ input[type=range]::-webkit-slider-thumb {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 16px 40px rgba(0, 0, 0, 0.34);
+}
+
+.fl-window {
+  border: 1px solid var(--fl-line-strong);
+  background: linear-gradient(180deg, #0f1319 0%, #0b0e13 48%, #080a0e 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 24px 50px rgba(0, 0, 0, 0.38);
+}
+
+.fl-header-strip {
+  border: 1px solid var(--fl-line);
+  background: linear-gradient(180deg, #353d4a 0%, #202630 30%, #141921 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.fl-slot {
+  border: 1px solid var(--fl-line);
+  background: linear-gradient(180deg, #232a36 0%, #171d26 42%, #121720 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.fl-led {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--fl-led-green);
+  box-shadow: 0 0 8px rgba(0, 230, 118, 0.8);
+}
+
+.fl-divider {
+  width: 1px;
+  align-self: stretch;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02));
 }
 
 .fl-grid-bg {
