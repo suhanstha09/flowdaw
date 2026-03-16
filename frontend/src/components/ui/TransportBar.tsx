@@ -25,9 +25,9 @@ export function TransportBar() {
   const startPosRef = useRef<number>(0)
   const lastStepRef = useRef<number>(-1)
 
-  const bars = Math.floor(playPosition / 4) + 1
+  const bars  = Math.floor(playPosition / 4) + 1
   const beats = Math.floor(playPosition % 4) + 1
-  const ticks = String(Math.floor((playPosition % 1) * 1000)).padStart(3, '0')
+  const ticks = String(Math.floor((playPosition % 1) * 100)).padStart(2, '0')
 
   const ensureAudio = () => {
     if (audioCtxRef.current) return audioCtxRef.current
@@ -45,7 +45,6 @@ export function TransportBar() {
     const ctx = audioCtxRef.current
     const out = masterGainRef.current
     if (!ctx || !out) return
-
     if (type === 'DRUMS') {
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
@@ -55,13 +54,10 @@ export function TransportBar() {
       gain.gain.setValueAtTime(0.0001, when)
       gain.gain.exponentialRampToValueAtTime(0.5, when + 0.005)
       gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.12)
-      osc.connect(gain)
-      gain.connect(out)
-      osc.start(when)
-      osc.stop(when + 0.14)
+      osc.connect(gain); gain.connect(out)
+      osc.start(when); osc.stop(when + 0.14)
       return
     }
-
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
     const midi = type === 'BASS' ? 40 : type === 'SYNTH' ? 64 : 57
@@ -71,10 +67,8 @@ export function TransportBar() {
     gain.gain.setValueAtTime(0.0001, when)
     gain.gain.exponentialRampToValueAtTime(type === 'BASS' ? 0.18 : 0.1, when + 0.01)
     gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.2)
-    osc.connect(gain)
-    gain.connect(out)
-    osc.start(when)
-    osc.stop(when + 0.21)
+    osc.connect(gain); gain.connect(out)
+    osc.start(when); osc.stop(when + 0.21)
   }
 
   const scheduleStep = (step: number) => {
@@ -96,12 +90,10 @@ export function TransportBar() {
       lastStepRef.current = -1
       return
     }
-
     const ctx = ensureAudio()
     ctx.resume()
     startTimeRef.current = ctx.currentTime
     startPosRef.current = playPosition
-
     const tick = () => {
       const elapsed = ctx.currentTime - startTimeRef.current
       const nextPos = startPosRef.current + elapsed * (bpm / 60)
@@ -113,21 +105,17 @@ export function TransportBar() {
       }
       rafRef.current = requestAnimationFrame(tick)
     }
-
     rafRef.current = requestAnimationFrame(tick)
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    }
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
   }, [isPlaying, bpm, tracks, playPosition, setPlayPosition])
 
   const handleBpmMouseDown = (e: React.MouseEvent) => {
     bpmDragRef.current = { startY: e.clientY, startBpm: bpm }
     const onMove = (evt: MouseEvent) => {
       if (!bpmDragRef.current) return
-      const newBpm = Math.max(
-        40,
-        Math.min(300, bpmDragRef.current.startBpm + Math.round((bpmDragRef.current.startY - evt.clientY) * 0.5))
-      )
+      const newBpm = Math.max(40, Math.min(300,
+        bpmDragRef.current.startBpm + Math.round((bpmDragRef.current.startY - evt.clientY) * 0.5)
+      ))
       setBpm(newBpm)
     }
     const onUp = () => {
@@ -140,98 +128,238 @@ export function TransportBar() {
   }
 
   return (
-    <div className="fl-window relative z-10 flex h-[58px] flex-shrink-0 items-center gap-3 border-x-0 border-b px-3">
-      <div className="fl-header-strip flex items-center gap-1.5 rounded-sm px-1.5 py-1">
-        <TBtn onClick={() => setPlayPosition(0)} title="Rewind" label="RW" />
-        <TBtn
-          onClick={() => setPlaying(!isPlaying)}
-          active={isPlaying}
-          title={isPlaying ? 'Pause' : 'Play'}
-          label={isPlaying ? 'PA' : 'PL'}
-        />
-        <TBtn
-          onClick={() => {
-            setPlaying(false)
-            setPlayPosition(0)
-            lastStepRef.current = -1
-          }}
-          title="Stop"
-          label="ST"
-        />
-        <TBtn onClick={() => setRecording(!isRecording)} active={isRecording} isRec title="Record" label="REC" />
+    <div
+      className="flex-shrink-0 flex items-center gap-1 px-2"
+      style={{
+        height: 38,
+        background: 'linear-gradient(180deg, #2c2c2c 0%, #1f1f1f 100%)',
+        borderBottom: '1px solid #0d0d0d',
+        borderTop: '1px solid #0d0d0d',
+      }}
+    >
+      {/* ── FL Logo ── */}
+      <div
+        className="flex items-center justify-center font-bold text-black mr-1 flex-shrink-0"
+        style={{
+          width: 24,
+          height: 24,
+          background: 'linear-gradient(135deg, #ffb340 0%, #ff6a00 100%)',
+          border: '1px solid #cc4400',
+          borderRadius: 1,
+          fontSize: 11,
+          boxShadow: '0 0 8px rgba(255,106,0,0.4)',
+        }}
+      >
+        F
       </div>
 
-      <div className="fl-divider" />
+      <div className="fl-divider-v" style={{ height: 24 }} />
 
-      <div className="fl-slot rounded-sm px-2 py-1 text-right">
-        <div className="text-[8px] uppercase tracking-[0.2em] text-text-dim">Time</div>
-        <div className="font-mono text-[22px] leading-none tracking-[0.12em] text-daw-green">
-          {bars}:0{beats}:{ticks}
+      {/* ── Transport Buttons ── */}
+      <div className="flex items-center gap-px">
+        {/* Return to start */}
+        <button
+          className="fl-tbtn"
+          title="Return to start"
+          onClick={() => { setPlayPosition(0); lastStepRef.current = -1 }}
+        >
+          ⏮
+        </button>
+
+        {/* Rewind */}
+        <button
+          className="fl-tbtn"
+          title="Rewind"
+          onClick={() => setPlayPosition(Math.max(0, playPosition - 4))}
+        >
+          ◀◀
+        </button>
+
+        {/* Stop */}
+        <button
+          className="fl-tbtn"
+          title="Stop"
+          onClick={() => { setPlaying(false); setPlayPosition(0); lastStepRef.current = -1 }}
+        >
+          ■
+        </button>
+
+        {/* Play */}
+        <button
+          className={`fl-tbtn${isPlaying ? ' fl-tbtn--active' : ''}`}
+          title={isPlaying ? 'Pause' : 'Play'}
+          onClick={() => setPlaying(!isPlaying)}
+          style={{ width: 34 }}
+        >
+          {isPlaying ? '⏸' : '▶'}
+        </button>
+
+        {/* Record */}
+        <button
+          className={`fl-tbtn fl-tbtn--rec${isRecording ? ' fl-tbtn--active' : ''}`}
+          title="Record"
+          onClick={() => setRecording(!isRecording)}
+        >
+          ⏺
+        </button>
+      </div>
+
+      <div className="fl-divider-v mx-1" style={{ height: 24 }} />
+
+      {/* ── Song Position Counter ── */}
+      <div className="flex flex-col items-end" style={{ gap: 1 }}>
+        <span style={{ fontSize: 8, textTransform: 'uppercase', color: '#666', letterSpacing: '0.1em' }}>
+          pos
+        </span>
+        <div
+          className="fl-lcd fl-lcd--green"
+          style={{ fontSize: 16, letterSpacing: '0.14em', minWidth: 80, textAlign: 'right' }}
+        >
+          {String(bars).padStart(2, '0')}:{beats}:{ticks}
         </div>
       </div>
 
+      <div className="fl-divider-v mx-1" style={{ height: 24 }} />
+
+      {/* ── BPM ── */}
       <div
-        className="fl-slot min-w-[74px] cursor-ns-resize rounded-sm px-2 py-1 text-center"
+        className="flex flex-col items-center cursor-ns-resize select-none"
+        style={{ gap: 1 }}
         onMouseDown={handleBpmMouseDown}
         title="Drag to change BPM"
       >
-        <div className="text-[8px] uppercase tracking-[0.2em] text-text-dim">Tempo</div>
-        <div className="font-mono text-[20px] leading-none text-accent">{bpm}</div>
-      </div>
-
-      <div className="fl-divider" />
-
-      <div className="fl-slot flex min-w-[210px] items-center gap-3 rounded-sm px-2 py-1">
-        <div className="text-[9px] uppercase tracking-[0.18em] text-text-dim">Master</div>
-        <input type="range" min={0} max={100} defaultValue={80} className="w-24" />
-        <div className="text-[11px] uppercase tracking-[0.14em] text-text-dim">
-          Key <span className="ml-1 text-text">{key}</span>
-        </div>
-        <div className="text-[11px] uppercase tracking-[0.14em] text-text-dim">
-          Time <span className="ml-1 text-text">{timeSignature[0]}/{timeSignature[1]}</span>
+        <span style={{ fontSize: 8, textTransform: 'uppercase', color: '#666', letterSpacing: '0.1em' }}>
+          bpm
+        </span>
+        <div className="fl-lcd" style={{ fontSize: 17, minWidth: 52, textAlign: 'center', letterSpacing: '0.08em' }}>
+          {bpm}
         </div>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
-        <div className="fl-slot flex items-center gap-2 rounded-sm px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-text-dim">
-          <span>Pat</span>
-          <span className="text-accent">01</span>
-          <span className="text-[#60708a]">Song</span>
+      {/* ── Time Signature ── */}
+      <div className="flex flex-col items-center" style={{ gap: 1, marginLeft: 2 }}>
+        <span style={{ fontSize: 8, textTransform: 'uppercase', color: '#666', letterSpacing: '0.1em' }}>
+          time
+        </span>
+        <div className="fl-lcd" style={{ fontSize: 14, minWidth: 30, textAlign: 'center' }}>
+          {timeSignature[0]}/{timeSignature[1]}
         </div>
-        <span
-          className={`h-2.5 w-2.5 rounded-full ${
-            isPlaying
-              ? 'bg-daw-green shadow-[0_0_10px_rgba(0,230,118,0.85)] animate-pulse-glow'
-              : 'bg-[#455064]'
-          }`}
+      </div>
+
+      <div className="fl-divider-v mx-1" style={{ height: 24 }} />
+
+      {/* ── Master Volume Knob ── */}
+      <div className="fl-knob-wrap" style={{ marginRight: 2 }}>
+        <span className="fl-knob-label">VOL</span>
+        <MasterKnob defaultValue={80} />
+      </div>
+
+      {/* ── Master Pitch Knob ── */}
+      <div className="fl-knob-wrap">
+        <span className="fl-knob-label">PITCH</span>
+        <MasterKnob defaultValue={64} />
+      </div>
+
+      <div className="fl-divider-v mx-1" style={{ height: 24 }} />
+
+      {/* ── Key display ── */}
+      <div className="flex flex-col items-center" style={{ gap: 1 }}>
+        <span style={{ fontSize: 8, textTransform: 'uppercase', color: '#666', letterSpacing: '0.1em' }}>key</span>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#e8a000',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}
+        >
+          {key}
+        </div>
+      </div>
+
+      {/* ── Play indicator LED ── */}
+      <div className="ml-auto flex items-center gap-2 pr-1">
+        {/* CPU/RAM meters — decorative */}
+        <div className="flex flex-col gap-0.5" style={{ width: 28 }}>
+          <CpuMeter label="CPU" value={isPlaying ? 42 : 12} />
+          <CpuMeter label="RAM" value={34} />
+        </div>
+
+        {/* Status LED */}
+        <div
+          className={isPlaying ? 'fl-led fl-led--orange fl-pulse' : 'fl-led fl-led--off'}
+          title={isPlaying ? 'Playing' : isRecording ? 'Recording' : 'Stopped'}
         />
       </div>
     </div>
   )
 }
 
-function TBtn({
-  onClick,
-  active,
-  isRec,
-  title,
-  label,
-}: {
-  onClick: () => void
-  active?: boolean
-  isRec?: boolean
-  title?: string
-  label: string
-}) {
-  const base = 'h-8 min-w-[32px] rounded-sm border px-2 font-mono text-[10px] tracking-[0.1em] flex items-center justify-center cursor-pointer transition-all duration-100'
-  const idle = 'bg-raised border-border text-text-dim hover:bg-hover hover:text-text hover:border-border-bright'
-  const activeClass = isRec
-    ? 'bg-daw-red border-red-400 text-white shadow-[0_0_10px_rgba(255,82,82,0.5)]'
-    : 'bg-accent border-accent2 text-white glow-orange'
+/* ────────────────────────────────────────────────────────── */
+/* Master Knob — small circular knob with orange arc         */
+/* ────────────────────────────────────────────────────────── */
+function MasterKnob({ defaultValue }: { defaultValue: number }) {
+  const norm  = defaultValue / 100
+  const angle = -135 + norm * 270
+  const r = 9, cx = 11, cy = 11
+  const rad2 = (a: number) => a * Math.PI / 180
+  // Arc path from -135° to current angle
+  const arcPath = describeArc(cx, cy, r - 2, -135, angle)
+  const ex = cx + r * Math.sin(rad2(angle))
+  const ey = cy - r * Math.cos(rad2(angle))
 
   return (
-    <button className={`${base} ${active ? activeClass : idle}`} onClick={onClick} title={title}>
-      {label}
-    </button>
+    <svg width={22} height={22} style={{ cursor: 'ns-resize' }}>
+      {/* Track arc */}
+      <path d={describeArc(cx, cy, r - 2, -135, 135)} fill="none" stroke="#444" strokeWidth={2} strokeLinecap="butt" />
+      {/* Fill arc */}
+      <path d={arcPath} fill="none" stroke="#ff6a00" strokeWidth={2} strokeLinecap="butt" />
+      {/* Body */}
+      <circle cx={cx} cy={cy} r={r - 4} fill="#2a2a2a" stroke="#111" strokeWidth={1} />
+      {/* Dot indicator */}
+      <circle cx={ex} cy={ey} r={1.5} fill="#ff6a00" />
+    </svg>
+  )
+}
+
+function describeArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
+  const toRad = (a: number) => a * Math.PI / 180
+  const sx = cx + r * Math.sin(toRad(startAngle))
+  const sy = cy - r * Math.cos(toRad(startAngle))
+  const ex = cx + r * Math.sin(toRad(endAngle))
+  const ey = cy - r * Math.cos(toRad(endAngle))
+  const large = endAngle - startAngle > 180 ? 1 : 0
+  return `M ${sx} ${sy} A ${r} ${r} 0 ${large} 1 ${ex} ${ey}`
+}
+
+/* ────────────────────────────────────────────────────────── */
+/* CPU/RAM bar meter                                          */
+/* ────────────────────────────────────────────────────────── */
+function CpuMeter({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span style={{ fontSize: 7, color: '#555', textTransform: 'uppercase', width: 20, flexShrink: 0, letterSpacing: '0.06em' }}>
+        {label}
+      </span>
+      <div
+        style={{
+          width: 34,
+          height: 4,
+          background: '#0d0d0d',
+          border: '1px solid #222',
+          borderRadius: 0,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            width: `${value}%`,
+            background: value > 80 ? '#ff5252' : value > 60 ? '#ffea00' : '#00cc66',
+          }}
+        />
+      </div>
+    </div>
   )
 }
