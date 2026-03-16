@@ -3,597 +3,568 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiClient, pollJob, StemJob } from '@/lib/api'
 
 const STEM_DEFS = [
-  { key: 'vocals', label: 'Vocals', short: 'VOX', slot: 'Insert 1', color: '#ff8a1f' },
-  { key: 'drums', label: 'Drums', short: 'DRM', slot: 'Insert 2', color: '#ff5252' },
-  { key: 'bass', label: 'Bass', short: 'BASS', slot: 'Insert 3', color: '#40c4ff' },
-  { key: 'other', label: 'Other', short: 'MUS', slot: 'Insert 4', color: '#00d084' },
+  { key: 'vocals', label: 'Vocals', short: 'VOX',  slot: 'Insert 1', color: '#ff6a00' },
+  { key: 'drums',  label: 'Drums',  short: 'DRM',  slot: 'Insert 2', color: '#ff5252' },
+  { key: 'bass',   label: 'Bass',   short: 'BASS', slot: 'Insert 3', color: '#00c8ff' },
+  { key: 'other',  label: 'Other',  short: 'MUS',  slot: 'Insert 4', color: '#00e676' },
 ] as const
 
-type StemDef = (typeof STEM_DEFS)[number]
-type StemKey = StemDef['key']
+type StemDef      = (typeof STEM_DEFS)[number]
+type StemKey      = StemDef['key']
 type StemSettings = Record<StemKey, { volume: number; pan: number }>
 
 const DEFAULT_STEM_SETTINGS: StemSettings = {
   vocals: { volume: 82, pan: 0 },
-  drums: { volume: 78, pan: 0 },
-  bass: { volume: 74, pan: -8 },
-  other: { volume: 76, pan: 6 },
+  drums:  { volume: 78, pan: 0 },
+  bass:   { volume: 74, pan: -8 },
+  other:  { volume: 76, pan: 6 },
+}
+
+/* ─── shared style tokens ─── */
+const S = {
+  panel: {
+    background: '#1e1e1e',
+    border: '1px solid #0d0d0d',
+    borderRadius: 1,
+  } as React.CSSProperties,
+  titlebar: {
+    background: 'linear-gradient(180deg,#2c2c2c 0%,#1e1e1e 100%)',
+    borderBottom: '1px solid #0d0d0d',
+    padding: '3px 8px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+  } as React.CSSProperties,
+  titleLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.14em',
+    color: '#ff6a00',
+  },
+  subtitle: {
+    fontSize: 9,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.1em',
+    color: '#555',
+  },
+  btn: {
+    height: 22,
+    padding: '0 8px',
+    fontSize: 10,
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.1em',
+    cursor: 'pointer',
+    background: '#2e2e2e',
+    color: '#ccc',
+    border: '1px solid #0d0d0d',
+    borderBottom: '1px solid #444',
+    borderRight: '1px solid #444',
+    borderRadius: 1,
+    fontFamily: "'Segoe UI', sans-serif",
+  } as React.CSSProperties,
 }
 
 export function StemSplitter() {
-  const [job, setJob] = useState<StemJob | null>(null)
-  const [uploading, setUploading] = useState(false)
-  const [uploadPct, setUploadPct] = useState(0)
-  const [dragOver, setDragOver] = useState(false)
+  const [job,           setJob]           = useState<StemJob | null>(null)
+  const [uploading,     setUploading]     = useState(false)
+  const [uploadPct,     setUploadPct]     = useState(0)
+  const [dragOver,      setDragOver]      = useState(false)
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null)
-  const [selectedStem, setSelectedStem] = useState<StemKey>('vocals')
-  const [stemSettings, setStemSettings] = useState<StemSettings>(DEFAULT_STEM_SETTINGS)
+  const [selectedStem,  setSelectedStem]  = useState<StemKey>('vocals')
+  const [stemSettings,  setStemSettings]  = useState<StemSettings>(DEFAULT_STEM_SETTINGS)
   const stopPollRef = useRef<(() => void) | null>(null)
 
-  useEffect(() => {
-    return () => {
-      stopPollRef.current?.()
-    }
-  }, [])
+  useEffect(() => () => { stopPollRef.current?.() }, [])
 
   useEffect(() => {
     if (job?.status !== 'done') return
-    const firstReadyStem = STEM_DEFS.find((def) => job.stems[def.key])
-    if (firstReadyStem) {
-      setSelectedStem(firstReadyStem.key)
-    }
+    const first = STEM_DEFS.find(d => job.stems[d.key])
+    if (first) setSelectedStem(first.key)
   }, [job])
 
   const checkBackend = useCallback(async () => {
-    try {
-      await apiClient.health()
-      setBackendOnline(true)
-    } catch {
-      setBackendOnline(false)
-    }
+    try { await apiClient.health(); setBackendOnline(true) }
+    catch { setBackendOnline(false) }
   }, [])
 
   const handleFile = async (file: File) => {
     if (!file) return
-
-    setUploading(true)
-    setUploadPct(0)
-    setJob(null)
-
+    setUploading(true); setUploadPct(0); setJob(null)
     try {
       const { data } = await apiClient.splitStems(file, setUploadPct)
-      setUploading(false)
-      setBackendOnline(true)
-      setJob({
-        job_id: data.job_id,
-        status: 'queued',
-        progress: 0,
-        error: null,
-        filename: file.name,
-        stems: {},
-      })
-
+      setUploading(false); setBackendOnline(true)
+      setJob({ job_id: data.job_id, status: 'queued', progress: 0, error: null, filename: file.name, stems: {} })
       stopPollRef.current?.()
-      stopPollRef.current = pollJob(data.job_id, (nextJob) => setJob(nextJob))
-    } catch {
-      setUploading(false)
-      setBackendOnline(false)
-    }
+      stopPollRef.current = pollJob(data.job_id, j => setJob(j))
+    } catch { setUploading(false); setBackendOnline(false) }
   }
 
-  const onDrop = (event: React.DragEvent<HTMLLabelElement>) => {
-    event.preventDefault()
-    setDragOver(false)
-    const file = event.dataTransfer.files[0]
-    if (file) {
-      handleFile(file)
-    }
+  const onDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault(); setDragOver(false)
+    const file = e.dataTransfer.files[0]; if (file) handleFile(file)
   }
 
-  const progress = uploading ? uploadPct : (job?.progress ?? 0)
-  const selectedStemDef = STEM_DEFS.find((stem) => stem.key === selectedStem) ?? STEM_DEFS[0]
-  const readyStemCount = STEM_DEFS.filter((stem) => job?.stems[stem.key]).length
+  const updateStemSetting = (stem: StemKey, key: 'volume' | 'pan', value: number) =>
+    setStemSettings(cur => ({ ...cur, [stem]: { ...cur[stem], [key]: value } }))
 
-  const updateStemSetting = (stem: StemKey, key: 'volume' | 'pan', value: number) => {
-    setStemSettings((current) => ({
-      ...current,
-      [stem]: {
-        ...current[stem],
-        [key]: value,
-      },
-    }))
-  }
+  const progress        = uploading ? uploadPct : (job?.progress ?? 0)
+  const selectedDef     = STEM_DEFS.find(d => d.key === selectedStem) ?? STEM_DEFS[0]
+  const readyStemCount  = STEM_DEFS.filter(d => job?.stems[d.key]).length
 
   return (
-    <div className="flex flex-1 overflow-hidden bg-[#17181d] text-text">
-      <div className="flex flex-1 flex-col overflow-hidden border-t border-white/5 bg-[radial-gradient(circle_at_top,#272a33_0%,#1a1c22_30%,#14151a_100%)]">
-        <div className="flex items-center justify-between border-b border-border bg-[#101115] px-5 py-3 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
-          <div>
-            <div className="font-display text-[28px] font-bold uppercase tracking-[0.35em] text-[#f3f4f6]">
-              Stem Rack
-            </div>
-            <div className="mt-1 text-[11px] uppercase tracking-[0.28em] text-text-dim">
-              Source separation console · Demucs htdemucs engine
-            </div>
-          </div>
+    <div style={{ display: 'flex', flex: 1, overflow: 'hidden', background: '#1a1a1a' }}>
+      {/* ── Top info bar ── */}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0,
+        height: 28,
+        background: '#111',
+        borderBottom: '1px solid #0d0d0d',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 10px',
+        gap: 12,
+        zIndex: 5,
+        flexShrink: 0,
+      }}>
+        <span style={S.titleLabel}>Stem Rack</span>
+        <span style={{ ...S.subtitle, marginLeft: 4 }}>Demucs htdemucs</span>
+        <span style={{ flex: 1 }} />
+        <Chip label="Mode"   value="Split"                     accent="#e8a000" />
+        <Chip label="Output" value={`${readyStemCount}/4`}     accent="#00e676" />
+        <Chip label="Sync"   value={backendOnline === false ? 'Offline' : 'Live'}
+              accent={backendOnline === false ? '#ff5252' : '#00c8ff'} />
+      </div>
 
-          <div className="flex items-center gap-3">
-            <ModuleChip label="Mode" value="Split" accent="text-accent" />
-            <ModuleChip label="Output" value={`${readyStemCount}/4 stems`} accent="text-daw-green" />
-            <ModuleChip label="Sync" value={backendOnline === false ? 'Offline' : 'Live'} accent={backendOnline === false ? 'text-daw-red' : 'text-daw-blue'} />
+      {/* ── Main 3-column layout ── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '240px 1fr 220px',
+        gap: 4,
+        flex: 1,
+        overflow: 'hidden',
+        padding: '32px 6px 6px',
+      }}>
+
+        {/* ── Column 1: Browser / Upload ── */}
+        <div style={{ ...S.panel, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={S.titlebar}>
+            <span style={S.titleLabel}>Browser</span>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+            {/* Upload zone */}
+            <label
+              style={{
+                minHeight: 120,
+                border: `1px solid ${dragOver ? '#ff6a00' : '#333'}`,
+                background: dragOver ? 'rgba(255,106,0,0.08)' : '#161616',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                padding: 8,
+                cursor: 'pointer',
+                borderRadius: 1,
+                position: 'relative',
+              }}
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={onDrop}
+            >
+              <input type="file" accept="audio/*" style={{ position: 'absolute', inset: 0, opacity: 0 }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+              <span style={{ ...S.subtitle }}>Audio Pool</span>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#e0e0e0' }}>
+                  {dragOver ? 'Drop File' : 'Load Sample'}
+                </div>
+                <div style={{ fontSize: 10, color: '#555', marginTop: 4, letterSpacing: '0.06em' }}>
+                  wav · mp3 · ogg · flac
+                </div>
+              </div>
+              <div style={{ fontSize: 10, color: '#555' }}>
+                {job?.filename ? job.filename.slice(0, 28) + (job.filename.length > 28 ? '…' : '') : 'No file loaded'}
+              </div>
+            </label>
+
+            {/* Engine status */}
+            <div style={{ ...S.panel, padding: 7 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={S.subtitle}>Engine Status</span>
+                <button onClick={checkBackend} style={{ ...S.btn, height: 18, padding: '0 5px', fontSize: 9 }}>
+                  Ping
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: backendOnline === false ? '#ff5252' : '#00e676',
+                  boxShadow: backendOnline === false ? '0 0 6px rgba(255,82,82,0.8)' : '0 0 6px rgba(0,230,118,0.8)',
+                }} />
+                <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  {backendOnline === false ? 'Offline' : backendOnline === true ? 'Connected' : 'Not checked'}
+                </span>
+              </div>
+              <StatusRow label="Model"   value="htdemucs" />
+              <StatusRow label="Queue"   value={job?.status === 'queued' ? 'Waiting' : 'Ready'} />
+              <StatusRow label="Process" value={uploading ? 'Uploading' : job?.status ?? 'Idle'} />
+              {backendOnline === false && (
+                <div style={{ marginTop: 5, fontSize: 10, color: '#ff5252', background: 'rgba(255,82,82,0.08)', padding: '4px 6px', borderRadius: 1, border: '1px solid rgba(255,82,82,0.2)' }}>
+                  Run: python manage.py runserver
+                </div>
+              )}
+            </div>
+
+            {/* Progress */}
+            <div style={{ ...S.panel, padding: 7 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                <span style={S.subtitle}>Global Progress</span>
+                <span style={{ fontSize: 11, fontFamily: 'Courier New', color: '#ff6a00' }}>{Math.round(progress)}%</span>
+              </div>
+              <div style={{ height: 8, background: '#0a0a0a', border: '1px solid #0d0d0d', overflow: 'hidden', borderRadius: 0, marginBottom: 5 }}>
+                <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg,#ff6a00,#e8a000)', transition: 'width 0.3s' }} />
+              </div>
+              <div style={{ fontSize: 10, color: '#555' }}>
+                {uploading ? 'Uploading…'
+                  : job?.status === 'error' ? job.error
+                  : job?.status_detail || (job ? 'Processing…' : 'Load audio to start')}
+              </div>
+            </div>
+
+            {/* Split timeline */}
+            <div style={{ ...S.panel, padding: 7 }}>
+              <div style={S.subtitle}>Split Timeline</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+                <TimelineStep label="Upload"   active={uploading}                          complete={!uploading && !!job} />
+                <TimelineStep label="Queue"    active={job?.status === 'queued'}            complete={job?.status === 'processing' || job?.status === 'done'} />
+                <TimelineStep label="Demucs"   active={job?.status === 'processing'}        complete={job?.status === 'done'} />
+                <TimelineStep label="Ready"    active={job?.status === 'done'}              complete={job?.status === 'done'} />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="grid flex-1 grid-cols-1 gap-4 overflow-hidden p-4 xl:grid-cols-[320px_minmax(0,1fr)_290px]">
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-[#1b1d24] shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
-            <PanelHeader title="Browser" subtitle="Import audio and monitor split status" />
-
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-              <label
-                className={`relative flex min-h-[190px] cursor-pointer flex-col justify-between overflow-hidden rounded-xl border px-4 py-4 transition-all ${
-                  dragOver
-                    ? 'border-accent bg-[linear-gradient(180deg,rgba(255,107,0,0.22),rgba(255,107,0,0.08))] shadow-[0_0_40px_rgba(255,107,0,0.18)]'
-                    : 'border-border-bright bg-[linear-gradient(180deg,#262932,#1a1c22)] hover:border-accent/70'
-                }`}
-                onDragOver={(event) => {
-                  event.preventDefault()
-                  setDragOver(true)
-                }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={onDrop}
-              >
-                <input
-                  type="file"
-                  accept="audio/*"
-                  className="absolute inset-0 opacity-0"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    if (file) {
-                      handleFile(file)
-                    }
-                  }}
+        {/* ── Column 2: Channel Rack (4 stems) ── */}
+        <div style={{ ...S.panel, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={S.titlebar}>
+            <span style={S.titleLabel}>Channel Rack</span>
+            <span style={{ ...S.subtitle, marginLeft: 4 }}>
+              {job?.filename ?? 'No file loaded'}
+            </span>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 4, minWidth: 480 }}>
+              {STEM_DEFS.map(def => (
+                <TrackStrip
+                  key={def.key}
+                  def={def}
+                  url={job?.stems[def.key]}
+                  progress={progress}
+                  selected={selectedStem === def.key}
+                  processing={job?.status === 'processing' || job?.status === 'queued' || uploading}
+                  settings={stemSettings[def.key]}
+                  onSelect={() => setSelectedStem(def.key)}
+                  onAdjust={(k, v) => updateStemSetting(def.key, k, v)}
                 />
+              ))}
+            </div>
+          </div>
+        </div>
 
-                <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.3em] text-text-dim">
-                  <span>Audio Pool</span>
-                  <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-[9px] text-text-faint">wav mp3 ogg flac</span>
-                </div>
+        {/* ── Column 3: Master/Inspector ── */}
+        <div style={{ ...S.panel, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={S.titlebar}>
+            <span style={S.titleLabel}>Master</span>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: 7, display: 'flex', flexDirection: 'column', gap: 6 }}>
 
+            {/* Selected stem info */}
+            <div style={{ ...S.panel, padding: 8 }}>
+              <div style={{ ...S.subtitle, marginBottom: 4 }}>Selected Insert</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                 <div>
-                  <div className="font-display text-[34px] font-bold uppercase tracking-[0.16em] text-white">
-                    {dragOver ? 'Drop To Load' : 'Load Sample'}
+                  <div style={{ fontSize: 18, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#e0e0e0' }}>
+                    {selectedDef.label}
                   </div>
-                  <div className="mt-2 max-w-[230px] text-[13px] leading-5 text-text-dim">
-                    Route a track into the splitter rack and export four isolated stems directly from the console.
-                  </div>
-                </div>
-
-                <div className="space-y-2 rounded-lg border border-white/5 bg-black/20 p-3">
-                  <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.16em] text-text-dim">
-                    <span>Active file</span>
-                    <span>{job?.filename ? formatShortName(job.filename) : 'Empty'}</span>
-                  </div>
-                  <div className="text-[12px] text-text-faint">
-                    Click to browse or drag a song into this module.
+                  <div style={{ fontSize: 9, color: selectedDef.color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    {selectedDef.slot}
                   </div>
                 </div>
-              </label>
-
-              <div className="rounded-xl border border-border bg-[#14161b] p-4">
-                <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-text-dim">
-                  <span>Engine Status</span>
-                  <button onClick={checkBackend} className="text-text-dim transition hover:text-text">
-                    Ping backend
-                  </button>
-                </div>
-
-                <div className="mt-3 flex items-center gap-3 rounded-lg border border-white/5 bg-[#0f1014] px-3 py-2">
-                  <div className={`h-2.5 w-2.5 rounded-full ${backendOnline === false ? 'bg-daw-red shadow-[0_0_12px_rgba(255,82,82,0.9)]' : 'bg-daw-green shadow-[0_0_12px_rgba(0,230,118,0.8)]'}`} />
-                  <div className="text-[12px] uppercase tracking-[0.18em] text-text">
-                    {backendOnline === false ? 'Backend offline' : backendOnline === true ? 'Backend connected' : 'Backend not checked'}
-                  </div>
-                </div>
-
-                <div className="mt-3 space-y-2 text-[12px] text-text-dim">
-                  <StatusRow label="Model" value="htdemucs" />
-                  <StatusRow label="Queue" value={job?.status === 'queued' ? 'Waiting' : 'Ready'} />
-                  <StatusRow label="Process" value={formatJobStatus(job?.status, uploading)} />
-                </div>
-
-                {backendOnline === false && (
-                  <div className="mt-3 rounded-lg border border-daw-red/30 bg-[#2a1010] px-3 py-2 text-[12px] text-daw-red">
-                    Start the Django API with python manage.py runserver from the backend folder.
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-xl border border-border bg-[#14161b] p-4">
-                <div className="text-[10px] uppercase tracking-[0.28em] text-text-dim">Split Timeline</div>
-                <div className="mt-4 space-y-3">
-                  <TimelineStep label="Upload" active={uploading} complete={!uploading && !!job} />
-                  <TimelineStep label="Queue" active={job?.status === 'queued'} complete={job?.status === 'processing' || job?.status === 'done'} />
-                  <TimelineStep label="Demucs" active={job?.status === 'processing'} complete={job?.status === 'done'} />
-                  <TimelineStep label="Export" active={job?.status === 'done'} complete={job?.status === 'done'} />
+                <div style={{ fontSize: 10, color: selectedDef.color, background: '#1a1a1a', border: `1px solid ${selectedDef.color}33`, padding: '2px 6px', borderRadius: 1, fontWeight: 700 }}>
+                  {selectedDef.short}
                 </div>
               </div>
+
+              {/* Waveform preview */}
+              <div style={{ height: 44, background: '#0a0a0a', border: '1px solid #0d0d0d', marginBottom: 6, overflow: 'hidden', padding: '2px 4px' }}>
+                <WaveformPreview color={selectedDef.color} active={Boolean(job?.stems[selectedDef.key])} />
+              </div>
+
+              <StatusRow label="Volume" value={`${stemSettings[selectedDef.key].volume}%`} />
+              <StatusRow label="Pan"    value={fmtPan(stemSettings[selectedDef.key].pan)} />
+              <StatusRow label="Split"  value={job?.status === 'done' ? 'Rendered' : 'Standby'} />
+              <StatusRow label="File"   value={job?.stems[selectedDef.key] ? 'Ready' : 'Pending'} />
             </div>
-          </section>
 
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-[#1b1d24] shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
-            <PanelHeader title="Channel Rack" subtitle="Each split stem lands on its own insert" />
-
-            <div className="border-b border-border bg-[linear-gradient(180deg,#22252d,#1a1c22)] px-4 py-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="min-w-[200px] rounded-lg border border-white/5 bg-black/20 px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-[0.22em] text-text-dim">Current Source</div>
-                  <div className="mt-1 text-[14px] font-semibold uppercase tracking-[0.08em] text-white">
-                    {job?.filename ?? 'No file loaded'}
-                  </div>
-                </div>
-
-                <div className="flex-1 rounded-lg border border-white/5 bg-black/20 px-3 py-3">
-                  <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-text-dim">
-                    <span>Global progress</span>
-                    <span className="font-mono text-[13px] text-accent">{Math.round(progress)}%</span>
-                  </div>
-                  <div className="mt-2 h-3 overflow-hidden rounded-full border border-black/30 bg-[#0e1014]">
-                    <div
-                      className="h-full rounded-full bg-[linear-gradient(90deg,#ff6b00,#ffc247)] transition-all duration-300"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <div className="mt-2 text-[12px] text-text-dim">
-                    {uploading
-                      ? 'Uploading source audio into the split queue.'
-                      : job?.status === 'error'
-                        ? job.error
-                        : job?.status_detail || (job ? 'Waiting for split activity.' : 'Load an audio file to start the rack.')}
-                  </div>
-                </div>
+            {/* Output meter */}
+            <div style={{ ...S.panel, padding: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={S.subtitle}>Output Meter</span>
+                <span style={{ fontSize: 10, fontFamily: 'Courier New', color: '#00e676' }}>-3.1 dB</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 1, height: 48, background: '#0a0a0a', border: '1px solid #0d0d0d', padding: '3px' }}>
+                {Array.from({ length: 20 }).map((_, i) => {
+                  const h = 20 + (i % 5) * 7 + progress * 0.25
+                  const active = i < Math.max(2, Math.round(progress / 10))
+                  return (
+                    <div key={i} style={{
+                      flex: 1,
+                      height: `${Math.min(h, 90)}%`,
+                      background: active ? (i > 15 ? '#ff5252' : i > 10 ? '#ffea00' : '#00e676') : '#222',
+                      borderRadius: 0,
+                      transition: 'height 0.2s',
+                    }} />
+                  )
+                })}
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-4">
-              <div className="grid min-w-[760px] grid-cols-4 gap-4">
-                {STEM_DEFS.map((def) => (
-                  <TrackStrip
-                    key={def.key}
-                    def={def}
-                    url={job?.stems[def.key]}
-                    progress={progress}
-                    selected={selectedStem === def.key}
-                    processing={job?.status === 'processing' || job?.status === 'queued' || uploading}
-                    settings={stemSettings[def.key]}
-                    onSelect={() => setSelectedStem(def.key)}
-                    onAdjust={(key, value) => updateStemSetting(def.key, key, value)}
-                  />
-                ))}
+            {/* Export bus */}
+            <div style={{ ...S.panel, padding: 8 }}>
+              <div style={S.subtitle}>Export Bus</div>
+              <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <StatusRow label="Rendered" value={`${readyStemCount} / 4`} />
+                <StatusRow label="Container" value="wav" />
+                <StatusRow label="Status" value={job?.status === 'done' ? 'Ready' : 'Waiting'} />
               </div>
+              {job?.status === 'error' && (
+                <div style={{ marginTop: 5, fontSize: 10, color: '#ff5252', background: 'rgba(255,82,82,0.08)', padding: '4px 6px', borderRadius: 1, border: '1px solid rgba(255,82,82,0.2)' }}>
+                  Error: {job.error}
+                </div>
+              )}
             </div>
-          </section>
-
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-[#1b1d24] shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
-            <PanelHeader title="Master" subtitle="Inspect the selected insert and export results" />
-
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-              <div className="rounded-xl border border-border bg-[linear-gradient(180deg,#20232b,#14161b)] p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.28em] text-text-dim">Selected Insert</div>
-                    <div className="mt-2 font-display text-[30px] font-bold uppercase tracking-[0.12em] text-white">
-                      {selectedStemDef.label}
-                    </div>
-                    <div className="text-[12px] uppercase tracking-[0.18em] text-text-dim">{selectedStemDef.slot}</div>
-                  </div>
-                  <div className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.22em]" style={{ color: selectedStemDef.color }}>
-                    {selectedStemDef.short}
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-lg border border-white/5 bg-black/20 p-3">
-                  <div className="text-[10px] uppercase tracking-[0.22em] text-text-dim">Track Preview</div>
-                  <div className="mt-3 h-20 rounded-lg border border-black/30 bg-[#0f1014] px-2 py-2">
-                    <WaveformPreview color={selectedStemDef.color} density={1.2} active={Boolean(job?.stems[selectedStemDef.key])} />
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-3 text-[12px] text-text-dim">
-                  <StatusCard label="Volume" value={`${stemSettings[selectedStemDef.key].volume}%`} />
-                  <StatusCard label="Pan" value={formatPan(stemSettings[selectedStemDef.key].pan)} />
-                  <StatusCard label="Split" value={job?.status === 'done' ? 'Rendered' : 'Standby'} />
-                  <StatusCard label="Stem File" value={job?.stems[selectedStemDef.key] ? 'Available' : 'Pending'} />
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-[#14161b] p-4">
-                <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-text-dim">
-                  <span>Output Meter</span>
-                  <span className="font-mono text-[12px] text-daw-green">-3.1 dB</span>
-                </div>
-
-                <div className="mt-4 flex items-end gap-2 rounded-lg border border-white/5 bg-[#0f1014] px-3 py-4">
-                  {Array.from({ length: 18 }).map((_, index) => {
-                    const height = 24 + ((index % 6) * 10) + (progress * 0.35)
-                    const active = index < Math.max(2, Math.round(progress / 9))
-                    return (
-                      <div
-                        key={index}
-                        className={`flex-1 rounded-t-sm transition-all duration-200 ${active ? 'bg-[linear-gradient(180deg,#c9ff54,#00d084)]' : 'bg-[#252932]'}`}
-                        style={{ height: `${Math.min(height, 100)}px` }}
-                      />
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-[#14161b] p-4">
-                <div className="text-[10px] uppercase tracking-[0.28em] text-text-dim">Export Bus</div>
-                <div className="mt-3 space-y-2 text-[12px] text-text-dim">
-                  <StatusRow label="Rendered stems" value={`${readyStemCount} / 4`} />
-                  <StatusRow label="Container" value="wav" />
-                  <StatusRow label="Action" value={job?.status === 'done' ? 'Ready to export' : 'Waiting'} />
-                </div>
-                {job?.status === 'error' && (
-                  <div className="mt-3 rounded-lg border border-daw-red/30 bg-[#2a1010] px-3 py-2 text-[12px] text-daw-red">
-                    Split failed: {job.error}
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-function TrackStrip({
-  def,
-  url,
-  progress,
-  selected,
-  processing,
-  settings,
-  onSelect,
-  onAdjust,
-}: {
-  def: StemDef
-  url?: string
-  progress: number
-  selected: boolean
-  processing: boolean
+/* ─────────────────────────────────────── */
+/* Track Strip                             */
+/* ─────────────────────────────────────── */
+function TrackStrip({ def, url, progress, selected, processing, settings, onSelect, onAdjust }: {
+  def: StemDef; url?: string; progress: number; selected: boolean; processing: boolean
   settings: StemSettings[StemKey]
-  onSelect: () => void
-  onAdjust: (key: 'volume' | 'pan', value: number) => void
+  onSelect: () => void; onAdjust: (k: 'volume' | 'pan', v: number) => void
 }) {
   const [playing, setPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const meterLevel = url ? Math.max(16, Math.round(settings.volume * 0.82)) : processing ? Math.max(8, Math.round(progress * 0.8)) : 0
 
-  useEffect(() => {
-    return () => {
-      audioRef.current?.pause()
-      audioRef.current = null
-    }
-  }, [])
+  useEffect(() => () => { audioRef.current?.pause(); audioRef.current = null }, [])
 
   const togglePlay = async () => {
     if (!url) return
-
     if (!audioRef.current) {
       audioRef.current = new Audio(url)
       audioRef.current.onended = () => setPlaying(false)
     }
-
-    if (playing) {
-      audioRef.current.pause()
-      setPlaying(false)
-      return
-    }
-
-    try {
-      audioRef.current.currentTime = 0
-      await audioRef.current.play()
-      setPlaying(true)
-    } catch {
-      setPlaying(false)
-    }
+    if (playing) { audioRef.current.pause(); setPlaying(false); return }
+    try { audioRef.current.currentTime = 0; await audioRef.current.play(); setPlaying(true) }
+    catch { setPlaying(false) }
   }
+
+  const meterLevel = url ? Math.max(16, Math.round(settings.volume * 0.82)) : processing ? Math.max(8, Math.round(progress * 0.8)) : 0
 
   return (
     <div
-      className={`flex min-h-[580px] flex-col rounded-xl border transition-all ${
-        selected ? 'border-accent bg-[linear-gradient(180deg,#252931,#181a20)] shadow-[0_0_0_1px_rgba(255,107,0,0.18),0_20px_50px_rgba(0,0,0,0.25)]' : 'border-border bg-[linear-gradient(180deg,#21242c,#17191f)]'
-      }`}
       onClick={onSelect}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        background: selected ? '#252520' : '#1e1e1e',
+        border: `1px solid ${selected ? def.color + '66' : '#0d0d0d'}`,
+        borderRadius: 1,
+        overflow: 'hidden',
+        cursor: 'pointer',
+        minHeight: 360,
+      }}
     >
-      <div className="border-b border-border px-3 py-3">
-        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.24em] text-text-dim">
-          <span>{def.slot}</span>
-          <span className={`h-2 w-2 rounded-full ${url ? 'bg-daw-green shadow-[0_0_12px_rgba(0,230,118,0.7)]' : processing ? 'bg-accent shadow-[0_0_12px_rgba(255,107,0,0.7)]' : 'bg-[#3b404b]'}`} />
+      {/* Strip header */}
+      <div style={{ background: '#111', borderBottom: '1px solid #0d0d0d', padding: '4px 6px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 9, textTransform: 'uppercase', color: '#555', letterSpacing: '0.1em' }}>{def.slot}</span>
+          <div style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: url ? '#00e676' : processing ? '#ff6a00' : '#333',
+            boxShadow: url ? '0 0 5px rgba(0,230,118,0.7)' : processing ? '0 0 5px rgba(255,106,0,0.7)' : 'none',
+          }} />
         </div>
-        <div className="mt-3 flex items-end justify-between">
-          <div>
-            <div className="font-display text-[24px] font-bold uppercase tracking-[0.14em] text-white">{def.label}</div>
-            <div className="text-[11px] uppercase tracking-[0.22em] text-text-dim">{def.short}</div>
-          </div>
-          <div className="rounded border border-white/10 bg-black/25 px-2 py-1 font-mono text-[11px] text-text-dim">
-            {url ? 'WAV' : processing ? 'BUSY' : 'WAIT'}
-          </div>
+        <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#e0e0e0', marginTop: 2 }}>
+          {def.label}
         </div>
+        <div style={{ fontSize: 9, color: def.color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{def.short}</div>
       </div>
 
-      <div className="flex flex-1 gap-3 px-3 py-4">
-        <div className="flex w-10 flex-col justify-end rounded-lg border border-black/30 bg-[#101217] px-1.5 py-2">
-          {Array.from({ length: 16 }).map((_, index) => {
-            const threshold = ((index + 1) / 16) * 100
-            const active = meterLevel >= threshold
-            const danger = threshold > 80
+      {/* Meter + controls */}
+      <div style={{ flex: 1, display: 'flex', gap: 4, padding: '6px 5px' }}>
+        {/* VU meter */}
+        <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: 1, width: 8 }}>
+          {Array.from({ length: 16 }).map((_, i) => {
+            const t = ((i + 1) / 16) * 100
+            const active = meterLevel >= t
             return (
-              <div
-                key={index}
-                className={`mb-1 h-3 rounded-sm transition-all ${
-                  active
-                    ? danger
-                      ? 'bg-[#ff6b57]'
-                      : threshold > 55
-                        ? 'bg-[#d7ff49]'
-                        : 'bg-[#00d084]'
-                    : 'bg-[#232732]'
-                }`}
-              />
+              <div key={i} style={{
+                flex: 1,
+                background: active ? (t > 85 ? '#ff5252' : t > 60 ? '#ffea00' : '#00e676') : '#1a1a1a',
+                border: '0.5px solid #0d0d0d',
+              }} />
             )
           })}
         </div>
 
-        <div className="flex flex-1 flex-col items-center rounded-lg border border-black/30 bg-[linear-gradient(180deg,#171920,#101217)] px-3 py-3">
-          <div className="flex h-[220px] items-center justify-center">
+        {/* Fader + pan + waveform */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center' }}>
+          {/* Volume fader */}
+          <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'column', gap: 2, width: '100%' }}>
+            <span style={{ fontSize: 8, color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Vol</span>
             <input
-              type="range"
-              min={0}
-              max={100}
-              value={settings.volume}
-              onChange={(event) => onAdjust('volume', Number(event.target.value))}
-              className="track-slider"
-              title={`${def.label} volume`}
+              type="range" min={0} max={100} value={settings.volume}
+              onChange={e => onAdjust('volume', Number(e.target.value))}
+              style={{ width: '100%' }}
+              onClick={e => e.stopPropagation()}
             />
+            <span style={{ fontSize: 9, fontFamily: 'Courier New', color: '#888' }}>{settings.volume}</span>
           </div>
 
-          <div className="mt-2 rounded-md border border-white/10 bg-black/25 px-2 py-1 font-mono text-[12px] text-white">
-            {settings.volume}
-          </div>
-
-          <div className="mt-5 w-full rounded-lg border border-black/30 bg-[#0d0f13] p-2">
-            <div className="text-center text-[10px] uppercase tracking-[0.2em] text-text-dim">Pan</div>
+          {/* Pan */}
+          <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'column', gap: 2, width: '100%' }}>
+            <span style={{ fontSize: 8, color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Pan</span>
             <input
-              type="range"
-              min={-50}
-              max={50}
-              value={settings.pan}
-              onChange={(event) => onAdjust('pan', Number(event.target.value))}
-              className="w-full"
-              title={`${def.label} pan`}
+              type="range" min={-50} max={50} value={settings.pan}
+              onChange={e => onAdjust('pan', Number(e.target.value))}
+              style={{ width: '100%' }}
+              onClick={e => e.stopPropagation()}
             />
-            <div className="text-center font-mono text-[11px] text-text">{formatPan(settings.pan)}</div>
+            <span style={{ fontSize: 9, fontFamily: 'Courier New', color: '#888' }}>{fmtPan(settings.pan)}</span>
           </div>
 
-          <div className="mt-5 w-full rounded-lg border border-black/30 bg-[#0d0f13] px-2 py-2">
-            <WaveformPreview color={def.color} density={0.95} active={Boolean(url) || processing || playing} />
+          {/* Waveform mini preview */}
+          <div style={{ width: '100%', height: 30, background: '#0a0a0a', border: '1px solid #0d0d0d', overflow: 'hidden', borderRadius: 0, padding: '1px 2px' }}>
+            <WaveformPreview color={def.color} active={Boolean(url) || processing || playing} />
           </div>
 
-          <div className="mt-auto flex w-full flex-col gap-2 pt-4">
-            <button
-              onClick={(event) => {
-                event.stopPropagation()
-                togglePlay()
-              }}
-              disabled={!url}
-              className={`rounded-md border px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.18em] transition ${
-                playing
-                  ? 'border-daw-green/50 bg-daw-green/10 text-daw-green'
-                  : url
-                    ? 'border-border-bright bg-[#2a2d36] text-text hover:border-accent hover:text-accent'
-                    : 'border-border bg-[#171920] text-text-faint'
-              }`}
-            >
-              {playing ? 'Stop Preview' : 'Preview'}
-            </button>
+          {/* Buttons */}
+          <button
+            onClick={e => { e.stopPropagation(); togglePlay() }}
+            disabled={!url}
+            style={{
+              width: '100%',
+              height: 20,
+              fontSize: 9,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              cursor: url ? 'pointer' : 'not-allowed',
+              background: playing ? 'rgba(0,230,118,0.15)' : url ? '#2e2e2e' : '#1a1a1a',
+              color: playing ? '#00e676' : url ? '#ccc' : '#444',
+              border: `1px solid ${playing ? '#00aa55' : url ? '#333' : '#0d0d0d'}`,
+              borderRadius: 1,
+              opacity: url ? 1 : 0.4,
+              fontFamily: "'Segoe UI', sans-serif",
+            }}
+          >
+            {playing ? 'Stop' : 'Preview'}
+          </button>
 
-            <a
-              href={url}
-              download
-              onClick={(event) => {
-                if (!url) {
-                  event.preventDefault()
-                }
-                event.stopPropagation()
-              }}
-              className={`rounded-md border px-3 py-2 text-center text-[12px] font-semibold uppercase tracking-[0.18em] transition ${
-                url ? 'border-border-bright bg-[#2a2d36] text-text hover:border-daw-blue hover:text-daw-blue' : 'pointer-events-none border-border bg-[#171920] text-text-faint'
-              }`}
-            >
-              Export Stem
-            </a>
-          </div>
+          <a
+            href={url}
+            download
+            onClick={e => { e.stopPropagation(); if (!url) e.preventDefault() }}
+            style={{
+              width: '100%',
+              height: 20,
+              fontSize: 9,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              cursor: url ? 'pointer' : 'not-allowed',
+              background: '#1a1a1a',
+              color: url ? '#00c8ff' : '#444',
+              border: `1px solid ${url ? '#1a4a6a' : '#0d0d0d'}`,
+              borderRadius: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textDecoration: 'none',
+              opacity: url ? 1 : 0.4,
+              fontFamily: "'Segoe UI', sans-serif",
+            }}
+          >
+            Export
+          </a>
         </div>
       </div>
     </div>
   )
 }
 
-function ModuleChip({ label, value, accent }: { label: string; value: string; accent: string }) {
+/* ─────────────────────────────────────── */
+/* Helpers                                 */
+/* ─────────────────────────────────────── */
+function Chip({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div className="rounded-lg border border-border bg-[#181a20] px-3 py-2">
-      <div className="text-[9px] uppercase tracking-[0.28em] text-text-faint">{label}</div>
-      <div className={`mt-1 text-[12px] font-semibold uppercase tracking-[0.18em] ${accent}`}>{value}</div>
-    </div>
-  )
-}
-
-function PanelHeader({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div className="border-b border-border bg-[linear-gradient(180deg,#23262f,#1a1c22)] px-4 py-3">
-      <div className="font-display text-[22px] font-bold uppercase tracking-[0.18em] text-white">{title}</div>
-      <div className="text-[11px] uppercase tracking-[0.22em] text-text-dim">{subtitle}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <span style={{ fontSize: 8, textTransform: 'uppercase', color: '#444', letterSpacing: '0.1em' }}>{label}</span>
+      <span style={{ fontSize: 10, fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{value}</span>
     </div>
   )
 }
 
 function StatusRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-md border border-white/5 bg-black/15 px-2.5 py-2">
-      <span className="uppercase tracking-[0.18em] text-text-faint">{label}</span>
-      <span className="font-mono text-text">{value}</span>
-    </div>
-  )
-}
-
-function StatusCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-white/5 bg-black/20 px-3 py-2">
-      <div className="text-[10px] uppercase tracking-[0.22em] text-text-faint">{label}</div>
-      <div className="mt-1 font-mono text-[13px] text-text">{value}</div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: 10 }}>
+      <span style={{ color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+      <span style={{ fontFamily: 'Courier New', color: '#888' }}>{value}</span>
     </div>
   )
 }
 
 function TimelineStep({ label, active, complete }: { label: string; active?: boolean; complete?: boolean }) {
   return (
-    <div className="flex items-center gap-3">
-      <div
-        className={`h-3 w-3 rounded-full border ${
-          complete
-            ? 'border-daw-green bg-daw-green shadow-[0_0_12px_rgba(0,230,118,0.6)]'
-            : active
-              ? 'border-accent bg-accent shadow-[0_0_12px_rgba(255,107,0,0.6)]'
-              : 'border-border bg-[#1a1d23]'
-        }`}
-      />
-      <div className="flex-1 rounded-md border border-white/5 bg-black/15 px-3 py-2 text-[12px] uppercase tracking-[0.18em] text-text-dim">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{
+        width: 10, height: 10, borderRadius: '50%',
+        background: complete ? '#00e676' : active ? '#ff6a00' : '#1e1e1e',
+        border: `1px solid ${complete ? '#00aa55' : active ? '#cc4400' : '#333'}`,
+        boxShadow: complete ? '0 0 5px rgba(0,230,118,0.6)' : active ? '0 0 5px rgba(255,106,0,0.6)' : 'none',
+        flexShrink: 0,
+      }} />
+      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: complete ? '#888' : active ? '#ccc' : '#444' }}>
         {label}
       </div>
     </div>
   )
 }
 
-function WaveformPreview({ color, density, active }: { color: string; density: number; active: boolean }) {
-  const bars = Array.from({ length: 42 }, (_, index) => {
-    const sineA = Math.sin(index * 0.72) * 14
-    const sineB = Math.cos(index * 0.33) * 11
-    const base = 28 + sineA + sineB + ((index % 5) * 4)
-    return Math.max(12, Math.min(96, base * density))
+function WaveformPreview({ color, active }: { color: string; active: boolean }) {
+  const bars = Array.from({ length: 32 }, (_, i) => {
+    const h = 30 + Math.sin(i * 0.72) * 18 + Math.cos(i * 0.33) * 14 + (i % 5) * 4
+    return Math.max(12, Math.min(96, h))
   })
-
   return (
-    <div className="flex h-full items-center gap-[3px]">
-      {bars.map((height, index) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 1, height: '100%' }}>
+      {bars.map((h, i) => (
         <div
-          key={index}
-          className="flex-1 rounded-sm transition-all duration-150"
+          key={i}
           style={{
-            height: `${height}%`,
-            background: active ? color : `${color}55`,
-            opacity: active ? 1 : 0.55,
+            flex: 1,
+            height: `${h}%`,
+            background: active ? color : color + '44',
+            borderRadius: 0,
           }}
         />
       ))}
@@ -601,31 +572,7 @@ function WaveformPreview({ color, density, active }: { color: string; density: n
   )
 }
 
-function formatJobStatus(status?: StemJob['status'], uploading?: boolean) {
-  if (uploading) return 'Uploading'
-  if (!status) return 'Idle'
-
-  switch (status) {
-    case 'queued':
-      return 'Queued'
-    case 'processing':
-      return 'Processing'
-    case 'done':
-      return 'Done'
-    case 'error':
-      return 'Error'
-    default:
-      return 'Idle'
-  }
+function fmtPan(v: number) {
+  if (v === 0) return 'C'
+  return v < 0 ? `L${Math.abs(v)}` : `R${v}`
 }
-
-function formatPan(value: number) {
-  if (value === 0) return 'C'
-  return value < 0 ? `L ${Math.abs(value)}` : `R ${value}`
-}
-
-function formatShortName(name: string) {
-  if (name.length <= 22) return name
-  return `${name.slice(0, 19)}...`
-}
-
