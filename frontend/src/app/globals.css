@@ -1,161 +1,424 @@
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================
+   FL STUDIO 21 DARK THEME — CSS CUSTOM PROPERTIES
+   ========================================================= */
 :root {
-  --fl-ink-0: #090b0f;
-  --fl-ink-1: #11141a;
-  --fl-ink-2: #1a1f28;
-  --fl-ink-3: #242b37;
-  --fl-line: rgba(255, 255, 255, 0.09);
-  --fl-line-strong: rgba(255, 255, 255, 0.16);
-  --fl-accent: #ff8c1f;
-  --fl-accent-hot: #ffb14f;
-  --fl-led-green: #00e676;
+  /* Core backgrounds */
+  --fl-bg:          #1a1a1a;
+  --fl-panel:       #252525;
+  --fl-panel-alt:   #1e1e1e;
+  --fl-raised:      #2e2e2e;
+  --fl-hover:       #3a3a3a;
+  --fl-active-bg:   #ff6a00;
+
+  /* Borders */
+  --fl-border:      #0d0d0d;
+  --fl-border-mid:  #333333;
+  --fl-border-hi:   #444444;
+
+  /* Accent colors */
+  --fl-accent:      #ff6a00;
+  --fl-accent2:     #e8a000;
+  --fl-accent-glow: rgba(255,106,0,0.55);
+
+  /* Text */
+  --fl-text:        #e0e0e0;
+  --fl-text-dim:    #888888;
+  --fl-text-faint:  #555555;
+
+  /* Status colors */
+  --fl-green:       #00e676;
+  --fl-blue:        #00c8ff;
+  --fl-red:         #ff5252;
+  --fl-yellow:      #ffea00;
+  --fl-purple:      #ce93d8;
+
+  /* Waveform */
+  --fl-waveform:    #00c8ff;
+
+  /* Grid */
+  --fl-grid:        #2a2a2a;
+  --fl-grid-strong: #333333;
+
+  /* Channel rack rows */
+  --fl-rack-a:      #222222;
+  --fl-rack-b:      #1e1e1e;
+
+  /* Piano keys */
+  --fl-key-white:   #d0d0d0;
+  --fl-key-black:   #111111;
+
+  /* Knobs */
+  --fl-knob-track:  #444444;
+  --fl-knob-fill:   #ff6a00;
+
+  /* Scrollbars */
+  --fl-scroll-track: #1a1a1a;
+  --fl-scroll-thumb: #3a3a3a;
+
+  /* Bevel (Win32 embossed style) */
+  --fl-bevel-light: #484848;
+  --fl-bevel-dark:  #0a0a0a;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* =========================================================
+   RESET & BASE
+   ========================================================= */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, #__next {
   height: 100%;
+  overflow: hidden;
 }
 
 body {
-  font-family: 'Barlow Condensed', sans-serif;
-  background:
-    radial-gradient(circle at top, rgba(69, 79, 94, 0.35) 0%, rgba(18, 22, 28, 0) 28%),
-    linear-gradient(180deg, #10141b 0%, #0a0d12 45%, #06080b 100%);
-  color: #e0e0e8;
-  overflow-x: hidden;
-  overflow-y: auto;
-  min-height: 100vh;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  font-size: 11px;
+  background: var(--fl-bg);
+  color: var(--fl-text);
+  overflow: hidden;
   letter-spacing: 0.01em;
+  line-height: 1.3;
 }
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #111115; }
-::-webkit-scrollbar-thumb { background: #555566; border-radius: 3px; }
+/* =========================================================
+   SCROLLBARS — thin FL Studio style
+   ========================================================= */
+::-webkit-scrollbar          { width: 8px; height: 8px; }
+::-webkit-scrollbar-track    { background: var(--fl-scroll-track); }
+::-webkit-scrollbar-thumb    { background: var(--fl-scroll-thumb); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: #505050; }
+::-webkit-scrollbar-corner   { background: var(--fl-bg); }
 
+/* =========================================================
+   RANGE INPUT — orange thumb
+   ========================================================= */
 input[type=range] {
   -webkit-appearance: none;
   height: 3px;
-  background: #3a3a44;
-  border-radius: 2px;
+  background: var(--fl-knob-track);
+  border-radius: 0;
   outline: none;
   cursor: pointer;
 }
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 11px; height: 11px;
-  border-radius: 50%;
-  background: #ff6b00;
+  width: 10px; height: 10px;
+  border-radius: 0;
+  background: var(--fl-accent);
   cursor: pointer;
+  border: 1px solid var(--fl-bevel-dark);
 }
 
-.glow-orange { box-shadow: 0 0 12px rgba(255,107,0,0.5); }
-.glow-blue   { box-shadow: 0 0 10px rgba(64,196,255,0.4); }
-.glow-green  { box-shadow: 0 0 10px rgba(0,230,118,0.4); }
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+/* =========================================================
+   FL STUDIO BEVEL BUTTON
+   — inset: 1px darker top/left, lighter bottom/right
+   ========================================================= */
+.fl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--fl-raised);
+  border-top: 1px solid var(--fl-bevel-dark);
+  border-left: 1px solid var(--fl-bevel-dark);
+  border-bottom: 1px solid var(--fl-bevel-light);
+  border-right: 1px solid var(--fl-bevel-light);
+  color: #cccccc;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 1px;
+  transition: background 60ms, color 60ms;
 }
-.animate-pulse-glow { animation: pulse-glow 1s ease-in-out infinite; }
-
-@keyframes slide-up {
-  from { transform: translateY(8px); opacity: 0; }
-  to   { transform: translateY(0);   opacity: 1; }
+.fl-btn:hover { background: var(--fl-hover); color: #ffffff; }
+.fl-btn:active,
+.fl-btn.fl-btn--active {
+  background: var(--fl-accent);
+  border-top: 1px solid #cc4400;
+  border-left: 1px solid #cc4400;
+  border-bottom: 1px solid #ff9955;
+  border-right: 1px solid #ff9955;
+  color: #ffffff;
 }
-.animate-slide-up { animation: slide-up 0.25s ease-out; }
-
-.fl-shell {
-  position: relative;
-}
-
-.fl-shell::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-  background-size: 40px 40px;
-  opacity: 0.3;
+.fl-btn--rec.fl-btn--active {
+  background: #cc0000;
+  border-top: 1px solid #880000;
+  border-left: 1px solid #880000;
+  border-bottom: 1px solid #ff4444;
+  border-right: 1px solid #ff4444;
 }
 
+/* Transport button — square icon button */
+.fl-tbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  background: var(--fl-raised);
+  border-top: 1px solid var(--fl-bevel-dark);
+  border-left: 1px solid var(--fl-bevel-dark);
+  border-bottom: 1px solid var(--fl-bevel-light);
+  border-right: 1px solid var(--fl-bevel-light);
+  cursor: pointer;
+  user-select: none;
+  border-radius: 1px;
+  color: #aaaaaa;
+  font-size: 12px;
+  transition: background 60ms;
+}
+.fl-tbtn:hover { background: var(--fl-hover); color: #ffffff; }
+.fl-tbtn.fl-tbtn--active {
+  background: var(--fl-accent);
+  border-top: 1px solid #cc4400;
+  border-left: 1px solid #cc4400;
+  border-bottom: 1px solid #ff9955;
+  border-right: 1px solid #ff9955;
+  color: white;
+  box-shadow: 0 0 8px var(--fl-accent-glow);
+}
+.fl-tbtn.fl-tbtn--rec.fl-tbtn--active {
+  background: #cc0000;
+  border-color: #880000;
+  box-shadow: 0 0 8px rgba(204,0,0,0.6);
+  color: white;
+}
+
+/* =========================================================
+   LCD READOUT — orange digits on dark background
+   ========================================================= */
+.fl-lcd {
+  background: #0a0a0a;
+  border-top: 1px solid var(--fl-bevel-dark);
+  border-left: 1px solid var(--fl-bevel-dark);
+  border-bottom: 1px solid #333;
+  border-right: 1px solid #333;
+  color: var(--fl-accent);
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-weight: 700;
+  padding: 2px 5px;
+  line-height: 1;
+  border-radius: 1px;
+  letter-spacing: 0.06em;
+}
+
+/* Green LCD for time counter */
+.fl-lcd--green { color: #00cc66; }
+
+/* =========================================================
+   PANEL & WINDOW CHROME
+   ========================================================= */
 .fl-panel {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(180deg, rgba(42, 47, 58, 0.9) 0%, rgba(20, 24, 31, 0.96) 16%, rgba(12, 15, 20, 0.98) 100%);
-  border-radius: 10px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 16px 40px rgba(0, 0, 0, 0.34);
+  background: var(--fl-panel);
+  border: 1px solid var(--fl-border);
+  border-radius: 1px;
 }
 
 .fl-window {
-  border: 1px solid var(--fl-line-strong);
-  background: linear-gradient(180deg, #0f1319 0%, #0b0e13 48%, #080a0e 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 24px 50px rgba(0, 0, 0, 0.38);
+  background: var(--fl-bg);
+  border: 1px solid var(--fl-border);
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.6);
+  border-radius: 1px;
 }
 
+/* Title bar of each panel/window */
+.fl-titlebar {
+  height: 20px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1e1e1e 100%);
+  border-bottom: 1px solid var(--fl-border);
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.fl-titlebar__label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--fl-accent);
+  flex: 1;
+}
+.fl-titlebar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 9px;
+  cursor: pointer;
+  color: var(--fl-text-dim);
+  background: var(--fl-raised);
+  border: 1px solid var(--fl-border-mid);
+  border-radius: 1px;
+  padding: 0;
+  line-height: 1;
+}
+.fl-titlebar__btn:hover { color: var(--fl-text); background: var(--fl-hover); }
+
+/* =========================================================
+   HEADER STRIP (top menu bar row)
+   ========================================================= */
 .fl-header-strip {
-  border: 1px solid var(--fl-line);
-  background: linear-gradient(180deg, #353d4a 0%, #202630 30%, #141921 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, #2c2c2c 0%, #1f1f1f 100%);
+  border-bottom: 1px solid var(--fl-border);
 }
 
-.fl-slot {
-  border: 1px solid var(--fl-line);
-  background: linear-gradient(180deg, #232a36 0%, #171d26 42%, #121720 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+/* =========================================================
+   CHANNEL RACK LED / STEP BUTTON
+   ========================================================= */
+.fl-step-btn {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background: #2a2a2a;
+  border-top: 1px solid var(--fl-bevel-dark);
+  border-left: 1px solid var(--fl-bevel-dark);
+  border-bottom: 1px solid #3a3a3a;
+  border-right: 1px solid #3a3a3a;
+  border-radius: 1px;
+  cursor: pointer;
+  transition: background 60ms;
+}
+.fl-step-btn:hover { background: #3a3a3a; }
+.fl-step-btn.fl-step-btn--lit {
+  background: var(--fl-accent);
+  border-top: 1px solid #cc4400;
+  border-left: 1px solid #cc4400;
+  border-bottom: 1px solid #ff8844;
+  border-right: 1px solid #ff8844;
+  box-shadow: 0 0 6px var(--fl-accent-glow);
 }
 
+/* =========================================================
+   LED INDICATOR
+   ========================================================= */
 .fl-led {
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 999px;
-  background: var(--fl-led-green);
-  box-shadow: 0 0 8px rgba(0, 230, 118, 0.8);
+  border-radius: 50%;
+  background: var(--fl-green);
+  box-shadow: 0 0 6px rgba(0,230,118,0.7);
+}
+.fl-led--off {
+  background: #333333;
+  box-shadow: none;
+}
+.fl-led--orange {
+  background: var(--fl-accent);
+  box-shadow: 0 0 6px var(--fl-accent-glow);
 }
 
-.fl-divider {
+/* =========================================================
+   SECTION LABEL (browser, rack headers)
+   ========================================================= */
+.fl-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--fl-text-dim);
+  border-top: 1px solid var(--fl-border-mid);
+  padding: 4px 8px 3px;
+}
+
+/* =========================================================
+   DIVIDER
+   ========================================================= */
+.fl-divider-v {
   width: 1px;
   align-self: stretch;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02));
+  background: var(--fl-border);
+  flex-shrink: 0;
+}
+.fl-divider-h {
+  height: 1px;
+  background: var(--fl-border);
 }
 
-.fl-grid-bg {
-  position: relative;
+/* =========================================================
+   KNOB — circular with orange arc indicator
+   ========================================================= */
+.fl-knob-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: ns-resize;
 }
-
-.fl-grid-bg::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 166, 92, 0.08), transparent 18%),
-    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
-  background-size: auto, 36px 36px, 36px 36px;
-  opacity: 0.38;
-}
-
-.fl-control-chip {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.2));
-  border-radius: 6px;
-  padding: 0.4rem 0.6rem;
-  color: #d6dae1;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+.fl-knob-label {
+  font-size: 8px;
   text-transform: uppercase;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  letter-spacing: 0.1em;
+  color: var(--fl-text-dim);
 }
+
+/* =========================================================
+   BROWSER TREE ITEM
+   ========================================================= */
+.fl-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--fl-text-dim);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fl-tree-item:hover { background: #2e2e2e; color: var(--fl-text); }
+.fl-tree-item.fl-tree-item--active {
+  background: var(--fl-accent);
+  color: #ffffff;
+}
+
+/* =========================================================
+   TABS (dock tabs, etc.)
+   ========================================================= */
+.fl-tab {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fl-text-dim);
+  background: var(--fl-raised);
+  border: 1px solid var(--fl-border);
+  border-radius: 1px;
+  cursor: pointer;
+  transition: background 60ms, color 60ms;
+}
+.fl-tab:hover { background: var(--fl-hover); color: var(--fl-text); }
+.fl-tab.fl-tab--active {
+  background: var(--fl-accent);
+  border-color: #cc4400;
+  color: #ffffff;
+  box-shadow: 0 0 6px var(--fl-accent-glow);
+}
+
+/* =========================================================
+   ANIMATIONS
+   ========================================================= */
+@keyframes fl-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+.fl-pulse { animation: fl-pulse 0.8s ease-in-out infinite; }
