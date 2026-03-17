@@ -484,7 +484,7 @@ function PanelFrame({
           <button className="fl-titlebar__btn">×</button>
         </span>
       </div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto', minHeight: 0 }}>
         {children}
       </div>
     </div>
