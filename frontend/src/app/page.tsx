@@ -473,7 +473,6 @@ function PanelFrame({
       display: 'flex',
       flexDirection: 'column',
       borderBottom: '1px solid #0d0d0d',
-      overflow: 'hidden',
       ...style,
     }}>
       {/* Title bar */}
