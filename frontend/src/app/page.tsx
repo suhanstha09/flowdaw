@@ -142,7 +142,6 @@ export default function Home() {
           display: 'flex',
           flexDirection: 'column',
           borderRight: '1px solid #0d0d0d',
-          overflow: 'hidden',
           background: '#1e1e1e',
         }}>
 
@@ -473,6 +472,7 @@ function PanelFrame({
       display: 'flex',
       flexDirection: 'column',
       borderBottom: '1px solid #0d0d0d',
+      overflow: 'auto',
       ...style,
     }}>
       {/* Title bar */}
