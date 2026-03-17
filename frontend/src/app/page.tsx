@@ -177,7 +177,7 @@ export default function Home() {
           </PanelFrame>
 
           {/* BROWSER */}
-          <PanelFrame title="BROWSER" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <PanelFrame title="BROWSER" style={{ flex: 1, minHeight: 0 }}>
             {/* Search bar */}
             <div style={{
               padding: '3px 6px',
